@@ -15,6 +15,7 @@ using LeagueSharp.Common;
 using SharpDX;
 using System;
 using System.Linq;
+using Color = System.Drawing.Color;
 
 namespace FuckingAwesomeLeeSin
 {
@@ -43,7 +44,14 @@ namespace FuckingAwesomeLeeSin
         public static float TimeOffset;
         public static Vector3 lastWardPos;
         public static float lastPlaced;
+        public static ezText TextRender = new ezText("Smite Text", "Smite", new Render.Text("Smite", new Vector2((Drawing.Width * 0.85f) + 50, Drawing.Height * 0.61f), 25, new ColorBGRA(255, 255, 255, 255)));
+        public static List<ezCircle> Ranges = new List<ezCircle>(); 
+        public static ezCircle QEzCircle;
+        public static ezCircle WEzCircle;
+        public static ezCircle EEzCircle;
+        public static ezCircle REzCircle;
 
+        public static bool textRendered;
         private static readonly string[] epics =
         {
             "SRU_BaronSpawn", "SRU_Dragon"
@@ -70,6 +78,7 @@ namespace FuckingAwesomeLeeSin
 
         static void Game_OnGameLoad(EventArgs args)
         {
+            
             if (Player.ChampionName != ChampName) return;
             IgniteSlot = Player.GetSpellSlot("SummonerDot");
             smiteSlot = Player.GetSpellSlot("SummonerSmite");
@@ -79,7 +88,17 @@ namespace FuckingAwesomeLeeSin
             W = new Spell(SpellSlot.W, 700);
             E = new Spell(SpellSlot.E, 430);
             R = new Spell(SpellSlot.R, 375);
+            
             Q.SetSkillshot(Q.Instance.SData.SpellCastTime, Q.Instance.SData.LineWidth, Q.Instance.SData.MissileSpeed,true,SkillshotType.SkillshotLine);
+            QEzCircle = new ezCircle("Q Range", new Render.Circle(Player, Q.Range, Color.White, 10));
+            WEzCircle = new ezCircle("W Range", new Render.Circle(Player, W.Range, Color.White, 10));
+            EEzCircle = new ezCircle("E Range", new Render.Circle(Player, E.Range, Color.White, 10));
+            REzCircle = new ezCircle("R Range", new Render.Circle(Player, R.Range, Color.White, 10));
+            Ranges.Add(QEzCircle);
+            Ranges.Add(WEzCircle);
+            Ranges.Add(EEzCircle);
+            Ranges.Add(REzCircle);
+            
             //Base menu
             Menu = new Menu("FALeeSin", ChampName, true);
             //Orbwalker and menu
@@ -139,6 +158,11 @@ namespace FuckingAwesomeLeeSin
 
             var autoSmiteSettings = new Menu("Smite Settings", "Auto Smite Settings");
             autoSmiteSettings.AddItem(new MenuItem("smiteEnabled", "Enabled").SetValue(new KeyBind("M".ToCharArray()[0], KeyBindType.Toggle)));
+            var itemSelMenu = autoSmiteSettings.AddSubMenu(new Menu("Selected Smite Targets", "sst"));
+            itemSelMenu.AddItem(new MenuItem("SRU_Red", "Red Buff").SetValue(true));
+            itemSelMenu.AddItem(new MenuItem("SRU_Blue", "Blue Buff").SetValue(true));
+            itemSelMenu.AddItem(new MenuItem("SRU_Dragon", "Dragon").SetValue(true));
+            itemSelMenu.AddItem(new MenuItem("SRU_BaronSpawn", "B'ron").SetValue(true));
             autoSmiteSettings.AddItem(new MenuItem("qqSmite", "Q->Smite->Q").SetValue(true));
             autoSmiteSettings.AddItem(new MenuItem("normSmite", "Normal Smite").SetValue(true));
             autoSmiteSettings.AddItem(new MenuItem("drawSmite", "Draw Smite Range").SetValue(true));
@@ -167,22 +191,24 @@ namespace FuckingAwesomeLeeSin
 
             var drawMenu = new Menu("Drawing", "Drawing");
             drawMenu.AddItem(new MenuItem("DrawEnabled", "Draw Enabled").SetValue(false));
+            drawMenu.AddItem(new MenuItem("drawST", "Draw Smite Text").SetValue(true));
+            drawMenu.AddItem(new MenuItem("drawOutLineST", "Draw Outline").SetValue(true));
             drawMenu.AddItem(new MenuItem("insecDraw", "Draw INSEC").SetValue(true));
             drawMenu.AddItem(new MenuItem("WJDraw", "Draw WardJump").SetValue(true));
-            drawMenu.AddItem(new MenuItem("drawQ", "Draw Q").SetValue(true));
-            drawMenu.AddItem(new MenuItem("drawW", "Draw W").SetValue(true));
-            drawMenu.AddItem(new MenuItem("drawE", "Draw E").SetValue(true));
-            drawMenu.AddItem(new MenuItem("drawR", "Draw R").SetValue(true));
+            TextRender.AddToMenu(drawMenu);
+            foreach (var ezCircle in Ranges)
+            {
+                ezCircle.AddToMenu(drawMenu);
+            }
             Menu.AddSubMenu(drawMenu);
 
-            //Exploits
             var miscMenu = new Menu("Misc", "Misc");
             miscMenu.AddItem(new MenuItem("NFE", "Use Packets?").SetValue(true));
             miscMenu.AddItem(new MenuItem("QHC", "Q Hitchance").SetValue(new StringList(new []{"LOW", "MEDIUM", "HIGH"}, 1)));
             miscMenu.AddItem(new MenuItem("IGNks", "Use Ignite?").SetValue(true));
             miscMenu.AddItem(new MenuItem("qSmite", "Smite Q!").SetValue(true));
             Menu.AddSubMenu(miscMenu);
-            //Make the menu visible
+
             Menu.AddToMainMenu();
 
             Drawing.OnDraw += Drawing_OnDraw; // Add onDraw
@@ -190,6 +216,7 @@ namespace FuckingAwesomeLeeSin
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
             GameObject.OnCreate += GameObject_OnCreate;
 
+            
             PrintMessage("Loaded!");
         }
 
@@ -449,8 +476,19 @@ namespace FuckingAwesomeLeeSin
         #region Tick Tasks
         static void Game_OnGameUpdate(EventArgs args)
         {
+            // Draws
+            TextRender.Text = Menu.Item("smiteEnabled").GetValue<KeyBind>().Active
+                        ? "Smite: Enabled"
+                        : "Smite: Disabled";
+            TextRender.Tick();
+            foreach (var c in Ranges)
+            {
+                c.drawCondtion = paramBool("DrawEnabled");
+                c.Tick();
+            }
+            //Draws End
+
             if(Player.IsDead) return;
-            smiteSlot = Player.GetSpellSlot(smitetype());
             if ((paramBool("insecMode")
                 ? TargetSelector.GetSelectedTarget()
                 : TargetSelector.GetTarget(Q.Range + 200, TargetSelector.DamageType.Physical)) == null)
@@ -535,10 +573,6 @@ namespace FuckingAwesomeLeeSin
                 Utility.DrawCircle(JumpPos.To3D(), 20, System.Drawing.Color.Red);
                 Utility.DrawCircle(Player.Position, 600, System.Drawing.Color.Red);
             }
-            if (paramBool("drawQ")) Utility.DrawCircle(Player.Position, Q.Range - 80, Q.IsReady() ? System.Drawing.Color.LightSkyBlue :System.Drawing.Color.Tomato);
-            if (paramBool("drawW")) Utility.DrawCircle(Player.Position, W.Range - 80, W.IsReady() ? System.Drawing.Color.LightSkyBlue :System.Drawing.Color.Tomato);
-            if (paramBool("drawE")) Utility.DrawCircle(Player.Position, E.Range - 80, E.IsReady() ? System.Drawing.Color.LightSkyBlue :System.Drawing.Color.Tomato);
-            if (paramBool("drawR")) Utility.DrawCircle(Player.Position, R.Range - 80, R.IsReady() ? System.Drawing.Color.LightSkyBlue :System.Drawing.Color.Tomato);
 
         }
         #endregion
@@ -546,14 +580,10 @@ namespace FuckingAwesomeLeeSin
         #region Autosmite
         public static void smiter()
         {
-            var minion =
-                MinionManager.GetMinions(Player.ServerPosition, Q.Range, MinionTypes.All, MinionTeam.NotAlly,
-                    MinionOrderTypes.MaxHealth).FirstOrDefault();
+            var minion = ObjectManager.Get<Obj_AI_Minion>().Where(a => buffandepics.Contains(a.BaseSkinName) && a.Distance(Player) <= 1300).FirstOrDefault() ;
             if (minion != null)
             {
-                foreach (var name in buffandepics)
-                {
-                    if (minion.BaseSkinName == name)
+                if (Menu.Item(minion.BaseSkinName).GetValue<bool>())
                     {
                         minionerimo = minion;
                         if (SmiteDmg() > minion.Health && minion.IsValidTarget(780) && paramBool("normSmite")) Player.Spellbook.CastSpell(smiteSlot, minion);
@@ -563,7 +593,6 @@ namespace FuckingAwesomeLeeSin
                             Player.Spellbook.CastSpell(smiteSlot, minion);
                         }
                         if (!Q.IsReady() || !paramBool("qqSmite")) return;
-
                         if (Q2Damage(minion, ((float) SmiteDmg() + Q.GetDamage(minion)), true) + SmiteDmg() >
                             minion.Health &&
                             !(minion.HasBuff("BlindMonkQOne", true) || minion.HasBuff("blindmonkqonechaos", true)))
@@ -584,7 +613,6 @@ namespace FuckingAwesomeLeeSin
                             Q.CastOnUnit(Player, true);
                         }
                     }
-                }
             }
         }
 
@@ -773,7 +801,9 @@ namespace FuckingAwesomeLeeSin
         public static void wardCombo()
         {
             var target = TargetSelector.GetTarget(1500, TargetSelector.DamageType.Physical);
-            Orbwalk(Game.CursorPos);
+
+            Orbwalking.Orbwalk(target ?? null, Game.CursorPos, Menu.Item("ExtraWindup").GetValue<Slider>().Value, Menu.Item("HoldPosRadius").GetValue<Slider>().Value);
+
             if (target == null) return;
             useItems(target);
             if ((target.HasBuff("BlindMonkQOne", true) || target.HasBuff("blindmonkqonechaos", true)))
