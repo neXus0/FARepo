@@ -204,7 +204,7 @@ namespace FuckingAwesomeLeeSin
 
             var miscMenu = new Menu("Misc", "Misc");
             miscMenu.AddItem(new MenuItem("NFE", "Use Packets?").SetValue(true));
-            miscMenu.AddItem(new MenuItem("QHC", "Q Hitchance").SetValue(new StringList(new []{"LOW", "MEDIUM", "HIGH"}, 1)));
+            miscMenu.AddItem(new MenuItem("QHC", "Q Hitchance").SetValue(new StringList(new []{"LOW", "MEDIUM", "HIGH", "VERY HIGH"}, 1)));
             miscMenu.AddItem(new MenuItem("IGNks", "Use Ignite?").SetValue(true));
             miscMenu.AddItem(new MenuItem("qSmite", "Smite Q!").SetValue(true));
             Menu.AddSubMenu(miscMenu);
@@ -868,7 +868,7 @@ namespace FuckingAwesomeLeeSin
         public static void CastQ1(Obj_AI_Hero target)
         {
             var Qpred = Q.GetPrediction(target);
-            if (Qpred.CollisionObjects.Count == 1 && Player.Spellbook.CanUseSpell(smiteSlot) == SpellState.Ready && paramBool("qSmite") && Q.MinHitChance == HitChance.High && Qpred.CollisionObjects[0].IsValidTarget(780))
+            if (Qpred.CollisionObjects.Count == 1 && Player.Spellbook.CanUseSpell(smiteSlot) == SpellState.Ready && paramBool("qSmite") && Qpred.Hitchance == HitChance.VeryHigh && Qpred.CollisionObjects[0].IsValidTarget(780) && SmiteDmg() > Qpred.CollisionObjects[0].Health)
             {
                 Player.Spellbook.CastSpell(smiteSlot, Qpred.CollisionObjects[0]);
                 Utility.DelayAction.Add(70, () => Q.Cast(Qpred.CastPosition, packets()));
@@ -992,8 +992,11 @@ namespace FuckingAwesomeLeeSin
                     return HitChance.Medium;
                 case 2:
                     return HitChance.High;
+                case 3:
+                    return HitChance.VeryHigh;
+                default:
+                    return HitChance.High;
             }
-            return HitChance.Medium;
         }
 
         public static bool hpLowerParam(Obj_AI_Base obj, String paramName)
