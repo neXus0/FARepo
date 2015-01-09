@@ -50,11 +50,14 @@ namespace FuckingAwesomeLeeSin
         public static ezCircle WEzCircle;
         public static ezCircle EEzCircle;
         public static ezCircle REzCircle;
+        public static int passiveStacks;
+        public static float passiveTimer;
+        public static bool waitforjungle;
 
         public static bool textRendered;
         private static readonly string[] epics =
         {
-            "SRU_BaronSpawn", "SRU_Dragon"
+            "SRU_Baron", "SRU_Dragon"
         };
         private static readonly string[] buffs =
         {
@@ -62,13 +65,30 @@ namespace FuckingAwesomeLeeSin
         };
         private static readonly string[] buffandepics =
         {
-            "SRU_Red", "SRU_Blue", "SRU_Dragon", "SRU_BaronSpawn"
+            "SRU_Red", "SRU_Blue", "SRU_Dragon", "SRU_Baron"
         };
-
+        private static readonly string[] bigjungleminions =
+        {
+            "SRU_Red", "SRU_Blue", "SRU_Dragon", "SRU_Baron", "SRU_Murkwolf", "SRU_Razorbeak", "SRU_Gromp", "SRU_Krug"
+        };
+        private static readonly string[] spells =
+        {
+            "BlindMonkQOne", "BlindMonkWOne", "BlindMonkEOne", "blindmonkwtwo", "blindmonkqtwo", "blindmonketwo", "BlindMonkRKick"
+        };
         // ReSharper disable once UnusedParameter.Local
         static void Main(string[] args)
         {
             CustomEvents.Game.OnGameLoad += Game_OnGameLoad;
+            Orbwalking.AfterAttack += Orbwalking_AfterAttack;
+        }
+
+        static void Orbwalking_AfterAttack(AttackableUnit unit, AttackableUnit target)
+        {
+            if (unit.IsMe && passiveStacks > 0)
+            {
+                passiveStacks = passiveStacks - 1;
+            }
+            
         }
 
         public static SpellSlot IgniteSlot;
@@ -78,10 +98,8 @@ namespace FuckingAwesomeLeeSin
 
         static void Game_OnGameLoad(EventArgs args)
         {
-            
             if (Player.ChampionName != ChampName) return;
             IgniteSlot = Player.GetSpellSlot("SummonerDot");
-            smiteSlot = Player.GetSpellSlot("SummonerSmite");
             flashSlot = Player.GetSpellSlot("summonerflash");
 
             Q = new Spell(SpellSlot.Q, 1100);
@@ -131,9 +149,14 @@ namespace FuckingAwesomeLeeSin
 
             //Jung/Wave Clear
             var waveclearMenu = new Menu("Wave/Jung Clear", "wjClear");
+            waveclearMenu.AddItem(new MenuItem("sjasjsdsjs", "WaveClear"));
             waveclearMenu.AddItem(new MenuItem("useQClear", "Use Q").SetValue(true));
-            waveclearMenu.AddItem(new MenuItem("useWClear", "Use W").SetValue(true));
             waveclearMenu.AddItem(new MenuItem("useEClear", "Use E").SetValue(true));
+            waveclearMenu.AddItem(new MenuItem("sjasjjs", "Jungle"));
+            waveclearMenu.AddItem(new MenuItem("jungActive", "Jungle Clear Active").SetValue(new KeyBind("C".ToCharArray()[0], KeyBindType.Press)));
+            waveclearMenu.AddItem(new MenuItem("Qjng", "Use Q").SetValue(true));
+            waveclearMenu.AddItem(new MenuItem("Wjng", "Use W").SetValue(true));
+            waveclearMenu.AddItem(new MenuItem("Ejng", "Use E").SetValue(true));
             Menu.AddSubMenu(waveclearMenu);
 
             //InsecMenu
@@ -162,7 +185,7 @@ namespace FuckingAwesomeLeeSin
             itemSelMenu.AddItem(new MenuItem("SRU_Red", "Red Buff").SetValue(true));
             itemSelMenu.AddItem(new MenuItem("SRU_Blue", "Blue Buff").SetValue(true));
             itemSelMenu.AddItem(new MenuItem("SRU_Dragon", "Dragon").SetValue(true));
-            itemSelMenu.AddItem(new MenuItem("SRU_BaronSpawn", "B'ron").SetValue(true));
+            itemSelMenu.AddItem(new MenuItem("SRU_Baron", "B'ron").SetValue(true));
             autoSmiteSettings.AddItem(new MenuItem("qqSmite", "Q->Smite->Q").SetValue(true));
             autoSmiteSettings.AddItem(new MenuItem("normSmite", "Normal Smite").SetValue(true));
             autoSmiteSettings.AddItem(new MenuItem("drawSmite", "Draw Smite Range").SetValue(true));
@@ -216,7 +239,6 @@ namespace FuckingAwesomeLeeSin
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
             GameObject.OnCreate += GameObject_OnCreate;
 
-            
             PrintMessage("Loaded!");
         }
 
@@ -258,6 +280,11 @@ namespace FuckingAwesomeLeeSin
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
             if (!sender.IsMe) return;
+            if (spells.Contains(args.SData.Name))
+            {
+                passiveStacks = 2;
+                passiveTimer = Environment.TickCount + 3000;
+            }
             if (args.SData.Name == "BlindMonkQOne")
             {
                 CastQAgain = false;
@@ -280,8 +307,6 @@ namespace FuckingAwesomeLeeSin
             }
             if (args.SData.Name == "BlindMonkRKick")
                 InsecComboStep = InsecComboStepSelect.NONE;
-            //if (args.SData.Name == "blindmonkqtwo" && HarassSelect != HarassStatEnum.NONE)
-            //    HarassSelect = HarassStatEnum.WJ;
             if (args.SData.Name == "BlindMonkWOne" && InsecComboStep == InsecComboStepSelect.NONE)
             {
                 Obj_AI_Hero target = paramBool("insecMode")
@@ -476,6 +501,11 @@ namespace FuckingAwesomeLeeSin
         #region Tick Tasks
         static void Game_OnGameUpdate(EventArgs args)
         {
+            smiteSlot = Player.GetSpellSlot(smitetype());
+            if (passiveTimer <= Environment.TickCount)
+            {
+                passiveStacks = 0;
+            }
             // Draws
             TextRender.Text = Menu.Item("smiteEnabled").GetValue<KeyBind>().Active
                         ? "Smite: Enabled"
@@ -489,6 +519,7 @@ namespace FuckingAwesomeLeeSin
             //Draws End
 
             if(Player.IsDead) return;
+            if (Menu.Item("jungActive").GetValue<KeyBind>().Active) JungleClear();
             if ((paramBool("insecMode")
                 ? TargetSelector.GetSelectedTarget()
                 : TargetSelector.GetTarget(Q.Range + 200, TargetSelector.DamageType.Physical)) == null)
@@ -518,8 +549,8 @@ namespace FuckingAwesomeLeeSin
                 }
                 Obj_AI_Hero newTarget = paramBool("insecMode")
                     ? TargetSelector.GetSelectedTarget()
-                    : TargetSelector.GetTarget(Q.Range + 200, TargetSelector.DamageType.Physical);
-                
+                    : TargetSelector.GetTarget(Q.Range + 200, TargetSelector.DamageType.Physical);  
+
                  if(newTarget != null) InsecCombo(newTarget);
             }
             else
@@ -543,7 +574,7 @@ namespace FuckingAwesomeLeeSin
             }
             if(Menu.Item("wjump").GetValue<KeyBind>().Active)
                 wardjumpToMouse();
-        }
+            }
 #endregion
 
         #region Draw
@@ -619,69 +650,101 @@ namespace FuckingAwesomeLeeSin
         #endregion
 
         #region WaveClear
-        public static void AllClear()
+
+        public static void JungleClear()
         {
-            var passiveIsActive = Player.HasBuff("blindmonkpassive_cosmetic", true);
-            bool isJung = false;
-            var minion =
-                MinionManager.GetMinions(Player.ServerPosition, Q.Range, MinionTypes.All, MinionTeam.Neutral,
-                    MinionOrderTypes.MaxHealth).FirstOrDefault();
-            if (minion == null) minion = MinionManager.GetMinions(Player.ServerPosition, Q.Range).FirstOrDefault();
-            else isJung = true;
-                useClearItems(minion);
-            if (isJung)
-            {
-                foreach (var name in buffandepics)
+            var minion = MinionManager.GetMinions(Player.ServerPosition, Q.Range, MinionTypes.All, MinionTeam.Neutral, MinionOrderTypes.MaxHealth).FirstOrDefault();
+            var passiveIsActive = passiveStacks > 0;
+            useClearItems(minion);
+            if (Q.IsReady() && paramBool("Qjng"))
                 {
-                    if (minion != null && minion.Name.ToLower().Contains(name.ToLower()))
+                    if ((minion.HasBuff("BlindMonkQOne", true) || minion.HasBuff("blindmonkqonechaos", true)) &&
+                        (CastQAgain) || Q.GetDamage(minion, 1) > minion.Health)
                     {
-                        if (minion.Health < SmiteDmg() + 300) return;
+                        Q.Cast(packets());
                     }
                 }
-            }
+                if (passiveIsActive || waitforjungle)
+                {
+                    return;
+                }
+                if (paramBool("Qjng") && Q2Damage(minion, Q.Instance.Name == "BlindMonkQOne" ? minion.Health - Q.GetDamage(minion) : minion.Health, true) > minion.Health && Q.IsReady())
+                {
+                    if (Q.Instance.Name == "BlindMonkQOne")
+                    {
+                        Q.Cast(minion, packets());
+                        waiter();
+                        return;
+                    }
+                    Q.Cast(packets());
+                    waiter();
+                    return;
+                    
+                }
+                if (paramBool("Wjng") && W.IsReady() && minion.IsValidTarget(Orbwalking.GetRealAutoAttackRange(Player) + 200))
+                {
+                    if (W.Instance.Name == "BlindMonkWOne")
+                    {
+                        W.Cast(packets());
+                        waiter();
+                        return;
+                    }
+                    W.Cast(packets());
+                    waiter();
+                    return;
+                }
+                if (paramBool("Qjng") && Q.IsReady() && minion.IsValidTarget(Q.Range))
+                {
+                    if (Q.Instance.Name == "BlindMonkQOne")
+                    {
+                        Q.Cast(minion, packets());
+                        waiter();
+                        return;
+                    }
+                    if ((minion.HasBuff("BlindMonkQOne", true) || minion.HasBuff("blindmonkqonechaos", true)))
+                    {
+                        Q.Cast(packets());
+                        waiter();
+                        return;
+                    }
+                }
+                if (paramBool("Ejng") && E.IsReady() && minion.IsValidTarget(E.Range))
+                {
+                    E.Cast(packets());
+                    waiter();
+                    return;
+                }
+        }
+
+        public static void waiter()
+        {
+            waitforjungle = true;
+            Utility.DelayAction.Add(300, () => waitforjungle = false);
+        }
+        public static void AllClear()
+        {
+            var minion = MinionManager.GetMinions(Player.ServerPosition, Q.Range).FirstOrDefault();
+            useClearItems(minion);
             if (minion == null || minion.Name.ToLower().Contains("ward")) return;
                 if (Menu.Item("useQClear").GetValue<bool>() && Q.IsReady())
                 {
                     if (Q.Instance.Name == "BlindMonkQOne")
                     {
-                        if (!passiveIsActive)
-                        {
                             Q.Cast(minion, true);
-                        }
                     }
                     else if ((minion.HasBuff("BlindMonkQOne", true) ||
-                             minion.HasBuff("blindmonkqonechaos", true)) && (!passiveIsActive || Q.IsKillable(minion, 1)) ||
+                             minion.HasBuff("blindmonkqonechaos", true)) && ( Q.IsKillable(minion, 1)) ||
                              Player.Distance(minion) > 500) Q.Cast();
-                }
-                if (paramBool("useWClear") && isJung && Player.Distance(minion) < Orbwalking.GetRealAutoAttackRange(Player))
-                {
-                    if (W.Instance.Name == "BlindMonkWOne" && !delayW)
-                    {
-                        if (!passiveIsActive)
-                        {
-                            W.CastOnUnit(Player);
-                            delayW = true;
-                            Utility.DelayAction.Add(300, () => delayW = false);
-                        }
-
-                    }
-                    else if (W.Instance.Name != "BlindMonkWOne" && (!passiveIsActive))
-                    {
-                        W.CastOnUnit(Player);
-                    }
                 }
                 if (Menu.Item("useEClear").GetValue<bool>() && E.IsReady())
                 {
                     if (E.Instance.Name == "BlindMonkEOne" && minion.IsValidTarget(E.Range) && !delayW)
                     {
-                        if (!passiveIsActive)
-                        {
                             E.Cast();
                             delayW = true;
                             Utility.DelayAction.Add(300, () => delayW = false);
-                        }
                     }
-                    else if (minion.HasBuff("BlindMonkEOne", true) && (!passiveIsActive || Player.Distance(minion) > 450))
+                    else if (minion.HasBuff("BlindMonkEOne", true) && (Player.Distance(minion) > 450))
                     {
                         E.Cast();
                     }
@@ -843,7 +906,7 @@ namespace FuckingAwesomeLeeSin
                 }
             }
             if ((paramBool("aaStacks") && Player.HasBuff("blindmonkpassive_cosmetic", true)) || target.IsValidTarget(Orbwalking.GetRealAutoAttackRange(Player))) return;
-            if (R.GetDamage(target) >= target.Health && paramBool("ksR")) R.Cast(target, packets());
+            if (R.GetDamage(target) >= target.Health && paramBool("ksR") && !target.IsInvulnerable) R.Cast(target, packets());
             useItems(target);
             if (paramBool("useW"))
             {
