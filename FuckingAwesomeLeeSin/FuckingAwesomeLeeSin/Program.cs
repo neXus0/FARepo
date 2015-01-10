@@ -44,12 +44,6 @@ namespace FuckingAwesomeLeeSin
         public static float TimeOffset;
         public static Vector3 lastWardPos;
         public static float lastPlaced;
-        public static ezText TextRender = new ezText("Smite Text", "Smite", new Render.Text("Smite", new Vector2((Drawing.Width * 0.85f) + 50, Drawing.Height * 0.61f), 25, new ColorBGRA(255, 255, 255, 255)));
-        public static List<ezCircle> Ranges = new List<ezCircle>(); 
-        public static ezCircle QEzCircle;
-        public static ezCircle WEzCircle;
-        public static ezCircle EEzCircle;
-        public static ezCircle REzCircle;
         public static int passiveStacks;
         public static float passiveTimer;
         public static bool waitforjungle;
@@ -108,14 +102,6 @@ namespace FuckingAwesomeLeeSin
             R = new Spell(SpellSlot.R, 375);
             
             Q.SetSkillshot(Q.Instance.SData.SpellCastTime, Q.Instance.SData.LineWidth, Q.Instance.SData.MissileSpeed,true,SkillshotType.SkillshotLine);
-            QEzCircle = new ezCircle("Q Range", new Render.Circle(Player, Q.Range, Color.White, 10));
-            WEzCircle = new ezCircle("W Range", new Render.Circle(Player, W.Range, Color.White, 10));
-            EEzCircle = new ezCircle("E Range", new Render.Circle(Player, E.Range, Color.White, 10));
-            REzCircle = new ezCircle("R Range", new Render.Circle(Player, R.Range, Color.White, 10));
-            Ranges.Add(QEzCircle);
-            Ranges.Add(WEzCircle);
-            Ranges.Add(EEzCircle);
-            Ranges.Add(REzCircle);
             
             //Base menu
             Menu = new Menu("FALeeSin", ChampName, true);
@@ -218,11 +204,10 @@ namespace FuckingAwesomeLeeSin
             drawMenu.AddItem(new MenuItem("drawOutLineST", "Draw Outline").SetValue(true));
             drawMenu.AddItem(new MenuItem("insecDraw", "Draw INSEC").SetValue(true));
             drawMenu.AddItem(new MenuItem("WJDraw", "Draw WardJump").SetValue(true));
-            TextRender.AddToMenu(drawMenu);
-            foreach (var ezCircle in Ranges)
-            {
-                ezCircle.AddToMenu(drawMenu);
-            }
+            drawMenu.AddItem(new MenuItem("drawQ", "Draw Q").SetValue(true));
+            drawMenu.AddItem(new MenuItem("drawW", "Draw W").SetValue(true));
+            drawMenu.AddItem(new MenuItem("drawE", "Draw E").SetValue(true));
+            drawMenu.AddItem(new MenuItem("drawR", "Draw R").SetValue(true));
             Menu.AddSubMenu(drawMenu);
 
             var miscMenu = new Menu("Misc", "Misc");
@@ -506,17 +491,6 @@ namespace FuckingAwesomeLeeSin
             {
                 passiveStacks = 0;
             }
-            // Draws
-            TextRender.Text = Menu.Item("smiteEnabled").GetValue<KeyBind>().Active
-                        ? "Smite: Enabled"
-                        : "Smite: Disabled";
-            TextRender.Tick();
-            foreach (var c in Ranges)
-            {
-                c.drawCondtion = paramBool("DrawEnabled");
-                c.Tick();
-            }
-            //Draws End
 
             if(Player.IsDead) return;
             if (Menu.Item("jungActive").GetValue<KeyBind>().Active) JungleClear();
@@ -604,6 +578,10 @@ namespace FuckingAwesomeLeeSin
                 Utility.DrawCircle(JumpPos.To3D(), 20, System.Drawing.Color.Red);
                 Utility.DrawCircle(Player.Position, 600, System.Drawing.Color.Red);
             }
+            if (paramBool("drawQ")) Utility.DrawCircle(Player.Position, Q.Range - 80, Q.IsReady() ? System.Drawing.Color.LightSkyBlue : System.Drawing.Color.Tomato);
+            if (paramBool("drawW")) Utility.DrawCircle(Player.Position, W.Range - 80, W.IsReady() ? System.Drawing.Color.LightSkyBlue : System.Drawing.Color.Tomato);
+            if (paramBool("drawE")) Utility.DrawCircle(Player.Position, E.Range - 80, E.IsReady() ? System.Drawing.Color.LightSkyBlue : System.Drawing.Color.Tomato);
+            if (paramBool("drawR")) Utility.DrawCircle(Player.Position, R.Range - 80, R.IsReady() ? System.Drawing.Color.LightSkyBlue : System.Drawing.Color.Tomato);
 
         }
         #endregion
@@ -654,6 +632,8 @@ namespace FuckingAwesomeLeeSin
         public static void JungleClear()
         {
             var minion = MinionManager.GetMinions(Player.ServerPosition, Q.Range, MinionTypes.All, MinionTeam.Neutral, MinionOrderTypes.MaxHealth).FirstOrDefault();
+            if (minion == null)
+                return;
             var passiveIsActive = passiveStacks > 0;
             useClearItems(minion);
             if (Q.IsReady() && paramBool("Qjng"))
@@ -905,24 +885,41 @@ namespace FuckingAwesomeLeeSin
                     Q.Cast();
                 }
             }
-            if ((paramBool("aaStacks") && Player.HasBuff("blindmonkpassive_cosmetic", true)) || target.IsValidTarget(Orbwalking.GetRealAutoAttackRange(Player))) return;
-            if (R.GetDamage(target) >= target.Health && paramBool("ksR") && !target.IsInvulnerable) R.Cast(target, packets());
             useItems(target);
+            if (R.GetDamage(target) >= target.Health && paramBool("ksR") && !target.IsInvulnerable) R.Cast(target, packets());
+            if (paramBool("aaStacks") && passiveStacks > 0 && target.IsValidTarget(Orbwalking.GetRealAutoAttackRange(Player) + 100)) return;
+            
             if (paramBool("useW"))
             {
                 if (paramBool("wMode") && target.Distance(Player) > Orbwalking.GetRealAutoAttackRange(Player))
+                {
                     WardJump(target.Position, false, true);
-                else if (!paramBool("wMode") && target.Distance(Player) > Q.Range) WardJump(target.Position, false, true);
+                    return;
+                }
+                else if (!paramBool("wMode") && target.Distance(Player) > Q.Range)
+                {
+                    WardJump(target.Position, false, true);
+                    return;
+                }
             }
             if (E.IsReady() && E.Instance.Name == "BlindMonkEOne" && target.IsValidTarget(E.Range) && paramBool("useE"))
+            {
                 E.Cast();
+                return;
+            }
 
             if (E.IsReady() && E.Instance.Name != "BlindMonkEOne" &&
                 !target.IsValidTarget(Orbwalking.GetRealAutoAttackRange(Player)) && paramBool("useE"))
+            {
                 E.Cast();
+                return;
+            }
 
             if (Q.IsReady() && Q.Instance.Name == "BlindMonkQOne" && paramBool("useQ"))
+            {
                 CastQ1(target);
+                return;
+            }
 
             if (R.IsReady() && Q.IsReady() &&
                 ((target.HasBuff("BlindMonkQOne", true) || target.HasBuff("blindmonkqonechaos", true))) && paramBool("useR"))
