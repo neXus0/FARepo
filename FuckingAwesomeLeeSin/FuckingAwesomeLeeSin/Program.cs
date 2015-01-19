@@ -1009,7 +1009,7 @@ namespace FuckingAwesomeLeeSin
         public static void CastQ1(Obj_AI_Hero target)
         {
             var Qpred = Q.GetPrediction(target);
-            if ((Qpred.CollisionObjects.Where(a => a.IsValidTarget() && a.IsMinion).ToList().Count / 2) == 1 && Player.Spellbook.CanUseSpell(smiteSlot) == SpellState.Ready && paramBool("qSmite") && Qpred.CollisionObjects[0].IsValidTarget(780))
+            if ((Qpred.CollisionObjects.Where(a => a.IsValidTarget() && a.IsMinion).ToList().Count) == 1 && Player.Spellbook.CanUseSpell(smiteSlot) == SpellState.Ready && paramBool("qSmite") && Qpred.CollisionObjects[0].IsValidTarget(780))
             {
                 Player.Spellbook.CastSpell(smiteSlot, Qpred.CollisionObjects[0]);
                 Utility.DelayAction.Add(Game.Ping/2, () => Q.Cast(Qpred.CastPosition, packets()));
@@ -1093,11 +1093,11 @@ namespace FuckingAwesomeLeeSin
                 Items.UseItem(3144, enemy);
             if (Items.CanUseItem(3153) && Player.Distance(enemy) <= 450)
                 Items.UseItem(3153, enemy);
-            if (Items.CanUseItem(3077) && Utility.CountEnemysInRange(350) >= 1)
+            if (Items.CanUseItem(3077) && Utility.CountEnemiesInRange(350) >= 1)
                 Items.UseItem(3077);
-            if (Items.CanUseItem(3074) && Utility.CountEnemysInRange(350) >= 1)
+            if (Items.CanUseItem(3074) && Utility.CountEnemiesInRange(350) >= 1)
                 Items.UseItem(3074);
-            if(Items.CanUseItem(3143) && Utility.CountEnemysInRange(450) >= 1)
+            if (Items.CanUseItem(3143) && Utility.CountEnemiesInRange(450) >= 1)
                 Items.UseItem(3143);
         }
 
