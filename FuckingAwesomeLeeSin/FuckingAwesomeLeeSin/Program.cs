@@ -85,9 +85,6 @@ namespace FuckingAwesomeLeeSin
         static void Main(string[] args)
         {
             CustomEvents.Game.OnGameLoad += Game_OnGameLoad;
-            Orbwalking.AfterAttack += Orbwalking_AfterAttack;
-            GameObject.OnDelete += GameObject_OnDelete;
-            Game.OnWndProc += Game_OnWndProc;
         }
 
         static void Game_OnWndProc(WndEventArgs args)
@@ -273,6 +270,9 @@ namespace FuckingAwesomeLeeSin
             Game.OnGameUpdate += Game_OnGameUpdate; // adds OnGameUpdate (Same as onTick in bol)
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
             GameObject.OnCreate += GameObject_OnCreate;
+            Orbwalking.AfterAttack += Orbwalking_AfterAttack;
+            GameObject.OnDelete += GameObject_OnDelete;
+            Game.OnWndProc += Game_OnWndProc;
 
             PrintMessage("Loaded!");
         }
@@ -1009,10 +1009,10 @@ namespace FuckingAwesomeLeeSin
         public static void CastQ1(Obj_AI_Hero target)
         {
             var Qpred = Q.GetPrediction(target);
-            if ((Qpred.CollisionObjects.Where(a => a.IsValid && !a.IsDead && a.IsMinion).ToList().Count / 2) == 1 && Player.Spellbook.CanUseSpell(smiteSlot) == SpellState.Ready && paramBool("qSmite") && Qpred.CollisionObjects[0].IsValidTarget(780))
+            if ((Qpred.CollisionObjects.Where(a => a.IsValidTarget() && a.IsMinion).ToList().Count / 2) == 1 && Player.Spellbook.CanUseSpell(smiteSlot) == SpellState.Ready && paramBool("qSmite") && Qpred.CollisionObjects[0].IsValidTarget(780))
             {
                 Player.Spellbook.CastSpell(smiteSlot, Qpred.CollisionObjects[0]);
-                Utility.DelayAction.Add(70, () => Q.Cast(Qpred.CastPosition, packets()));
+                Utility.DelayAction.Add(Game.Ping/2, () => Q.Cast(Qpred.CastPosition, packets()));
             }
             else if(Qpred.CollisionObjects.Count == 0)
             {
