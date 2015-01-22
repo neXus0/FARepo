@@ -967,39 +967,33 @@ namespace FuckingAwesomeLeeSin
                 }
             }
             useItems(target);
-            if (R.GetDamage(target) >= target.Health && paramBool("ksR") && !target.IsInvulnerable) R.Cast(target, packets());
+            if (R.GetDamage(target) >= target.Health && paramBool("ksR") && target.IsValidTarget()) R.Cast(target, packets());
             if (paramBool("aaStacks") && passiveStacks > 0 && target.IsValidTarget(Orbwalking.GetRealAutoAttackRange(Player) + 100)) return;
-            
             if (paramBool("useW"))
             {
                 if (paramBool("wMode") && target.Distance(Player) > Orbwalking.GetRealAutoAttackRange(Player))
                 {
                     WardJump(target.Position, false, true);
-                    return;
                 }
                 if (!paramBool("wMode") && target.Distance(Player) > Q.Range)
                 {
                     WardJump(target.Position, false, true);
-                    return;
                 }
             }
             if (E.IsReady() && E.Instance.Name == "BlindMonkEOne" && target.IsValidTarget(E.Range) && paramBool("useE"))
             {
                 E.Cast();
-                return;
             }
 
             if (E.IsReady() && E.Instance.Name != "BlindMonkEOne" &&
                 !target.IsValidTarget(Orbwalking.GetRealAutoAttackRange(Player)) && paramBool("useE"))
             {
                 E.Cast();
-                return;
             }
 
             if (Q.IsReady() && Q.Instance.Name == "BlindMonkQOne" && paramBool("useQ"))
             {
                 CastQ1(target);
-                return;
             }
 
             if (R.IsReady() && Q.IsReady() &&
@@ -1009,7 +1003,7 @@ namespace FuckingAwesomeLeeSin
         public static void CastQ1(Obj_AI_Hero target)
         {
             var Qpred = Q.GetPrediction(target);
-            if ((Qpred.CollisionObjects.Where(a => a.IsValidTarget() && a.IsMinion).ToList().Count) == 1 && Player.Spellbook.CanUseSpell(smiteSlot) == SpellState.Ready && paramBool("qSmite") && Qpred.CollisionObjects[0].IsValidTarget(780))
+            if ((Qpred.CollisionObjects.Where(a => a.IsValidTarget() && a.IsMinion).ToList().Count) == 1 && smiteSlot.IsReady() && paramBool("qSmite") && Qpred.CollisionObjects[0].IsValidTarget(780))
             {
                 Player.Spellbook.CastSpell(smiteSlot, Qpred.CollisionObjects[0]);
                 Utility.DelayAction.Add(Game.Ping/2, () => Q.Cast(Qpred.CastPosition, packets()));
