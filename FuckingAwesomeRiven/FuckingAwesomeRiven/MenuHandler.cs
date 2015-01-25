@@ -42,7 +42,7 @@ namespace FuckingAwesomeRiven
             combo.AddItem(new MenuItem("CE", "Use E").SetValue(true));
             combo.AddItem(new MenuItem("UseE-AA", "   Only E if out of AA range").SetValue(true));
             combo.AddItem(new MenuItem("UseE-GC", "   Use E to Gapclose").SetValue(true));
-            combo.AddItem(new MenuItem("CR", "Use R [soon]").SetValue(true));
+            combo.AddItem(new MenuItem("CR", "Use R").SetValue(true));
             combo.AddItem(new MenuItem("CR2", "Use R2").SetValue(true));
             combo.AddItem(new MenuItem("magnet", "Magnet Target").SetValue(false));
             combo.AddItem(new MenuItem("bdsfdfffsf", ""));
@@ -93,7 +93,7 @@ namespace FuckingAwesomeRiven
             Info.AddItem(new MenuItem("Msdsadfdsd", "jayyeditsdude@gmail.com"));
             Info.AddItem(new MenuItem("debug", "Debug Mode")).SetValue(false);
 
-            Config.AddItem(new MenuItem("Mgdgdfgsd", "Version: 0.0.1 BETA"));
+            Config.AddItem(new MenuItem("Mgdgdfgsd", "Version: 0.0.2 BETA"));
             Config.AddItem(new MenuItem("Msd", "Made By FluxySenpai"));
 
             Config.AddToMainMenu();

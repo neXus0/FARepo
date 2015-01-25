@@ -33,6 +33,7 @@ namespace FuckingAwesomeRiven
             CheckHandler.init();
             Player = ObjectManager.Player;
             Game.OnGameUpdate += Game_OnGameUpdate;
+            Game.OnGameUpdate += eventArgs => StateHandler.tick();
             Obj_AI_Hero.OnProcessSpellCast += CheckHandler.Obj_AI_Hero_OnProcessSpellCast;
             Drawing.OnDraw += DrawHandler.Draw;
         }

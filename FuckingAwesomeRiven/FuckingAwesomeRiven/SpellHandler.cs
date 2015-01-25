@@ -40,12 +40,12 @@ namespace FuckingAwesomeRiven
             if (target != null)
             {
                 _spells[SpellSlot.Q].Cast(target.Position, true);
-                Utility.DelayAction.Add(50, () => CheckHandler.ResetQ = true);
+                Utility.DelayAction.Add(45, () => CheckHandler.ResetQ = true);
             }
             else
             {
                 _spells[SpellSlot.Q].Cast(Game.CursorPos, true);
-                Utility.DelayAction.Add(50, () => CheckHandler.ResetQ = true);
+                Utility.DelayAction.Add(48, () => CheckHandler.ResetQ = true);
             }
         }
 
@@ -63,6 +63,8 @@ namespace FuckingAwesomeRiven
 
         public static void CastE(Vector3 pos)
         {
+            if (!_spells[SpellSlot.E].IsReady())
+                return;
             _spells[SpellSlot.E].Cast(pos);
             CH.LastE = Environment.TickCount;
         }
@@ -123,8 +125,8 @@ namespace FuckingAwesomeRiven
         {
             if (CH.ResetQ)
             {
-                var pos1 = Player.Position.Extend(target.Position, -300);
-                var pos2 = Player.Position.Extend(target.Position, 300);
+                var pos1 = target.Position.Extend(Player.Position, target.Distance(Player) + 62);
+                var pos2 = target.Position.Extend(Player.Position, target.Distance(Player) - 62);
                 Player.IssueOrder(GameObjectOrder.MoveTo, target.IsValidTarget() ? pos1 : pos2);
                 CH.ResetQ = false;
             }

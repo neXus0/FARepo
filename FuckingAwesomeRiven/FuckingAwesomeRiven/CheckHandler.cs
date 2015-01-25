@@ -12,7 +12,7 @@ namespace FuckingAwesomeRiven
     class CheckHandler
     {
 
-        public static int LastQ, LastQ2, LastW, LastE, LastAA, LastPassive, LastFR;
+        public static int LastQ, LastQ2, LastW, LastE, LastAA, LastPassive, LastFR, lastTiamat, lastR2;
         public static bool CanQ, CanW, CanE, CanR, CanAA, CanMove, CanSR, MidQ, MidW, MidE, MidAa, RState, BurstFinished, ResetQ;
         public static int PassiveStacks, QCount, FullComboState;
 
@@ -132,7 +132,7 @@ namespace FuckingAwesomeRiven
                 {
                     PassiveStacks = PassiveStacks + 1;
                 }
-
+                lastR2 = Environment.TickCount;
                 RState = false;
                 CanSR = false;
                 FullComboState = 3;
@@ -141,7 +141,7 @@ namespace FuckingAwesomeRiven
 
         public static void Checks()
         {
-            if (MidQ && Environment.TickCount - LastQ >= 400)
+            if (MidQ && Environment.TickCount - LastQ >= 270)
             {
                 MidQ = false;
                 CanMove = true;
