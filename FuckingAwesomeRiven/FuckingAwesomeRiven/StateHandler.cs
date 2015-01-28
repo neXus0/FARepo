@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using LeagueSharp;
 using LeagueSharp.Common;
+using LeagueSharp.Common.Data;
 using SharpDX;
 using SH = FuckingAwesomeRiven.SpellHandler;
 using CH = FuckingAwesomeRiven.CheckHandler;
