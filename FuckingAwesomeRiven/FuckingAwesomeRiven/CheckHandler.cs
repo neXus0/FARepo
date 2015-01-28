@@ -141,7 +141,7 @@ namespace FuckingAwesomeRiven
 
         public static void Checks()
         {
-            if (MidQ && Environment.TickCount - LastQ >= 270)
+            if (MidQ && Environment.TickCount - LastQ >= 260 + (Game.Ping / 2) + MenuHandler.Config.Item("bonusCancelDelay").GetValue<Slider>().Value)
             {
                 MidQ = false;
                 CanMove = true;
